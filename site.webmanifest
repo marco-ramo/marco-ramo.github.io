@@ -1,0 +1,11 @@
+{
+  "name": "Marco Ramo",
+  "short_name": "Marco Ramo",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#ebece9",
+  "background_color": "#ebece9",
+  "display": "browser"
+}
