@@ -131,7 +131,7 @@
   }
   .reg{display:inline-flex;align-items:center;gap:.6em}
   .reg svg{width:13px;height:13px;display:block}
-  .reg b{color:var(--ink);font-weight:400;letter-spacing:.14em}
+  .reg b{color:var(--soft);font-weight:400;letter-spacing:.14em}
   .coords{text-align:right;line-height:1.5;white-space:nowrap}
   /* On narrow phones keep the coordinates but shrink them a touch so the top bar never crowds or wraps. */
   @media (max-width:560px){ .coords{font-size:.56rem;letter-spacing:.08em} }
@@ -196,8 +196,15 @@
     transition:background-size .22s cubic-bezier(.2,.7,.2,1),color .22s;
   }
   .lk .arw{font-size:.78em;vertical-align:.06em;opacity:.55}
-  .lk:hover,.lk:focus-visible{color:var(--paper);background-size:100% 100%}
-  .lk:hover .arw,.lk:focus-visible .arw{opacity:.8}
+  /* Invert-on-hover only where a real pointer exists, so taps on touch screens
+     don't leave the link "stuck" highlighted after returning to the page.
+     Keyboard focus keeps the effect for accessibility. */
+  @media (hover:hover) and (pointer:fine){
+    .lk:hover{color:var(--paper);background-size:100% 100%}
+    .lk:hover .arw{opacity:.8}
+  }
+  .lk:focus-visible{color:var(--paper);background-size:100% 100%}
+  .lk:focus-visible .arw{opacity:.8}
   a:focus-visible{outline:2px solid var(--spot);outline-offset:3px;border-radius:1px}
 
   /* ---- footer ---- */
@@ -207,7 +214,7 @@
     font-size:clamp(.58rem,1.45vmin,.72rem);
     letter-spacing:.14em;text-transform:uppercase;color:var(--soft);
   }
-  .foot .dom{color:var(--ink);letter-spacing:.18em}
+  .foot .dom{color:var(--soft);letter-spacing:.18em}
   .foot .colo{text-align:right;line-height:1.5;max-width:30ch}
   @media (max-height:560px){ .foot .colo{display:none} }
 
