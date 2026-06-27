@@ -79,7 +79,7 @@
   :root{
     --paper:#ebece9;
     --ink:#161616;
-    --soft:#74746d;
+    --soft:#6a6a63;
     --hair:rgba(22,22,22,.18);
     --spot:#e5231b;
     --pad:clamp(16px,3.2vmin,34px);
@@ -132,8 +132,9 @@
   .reg{display:inline-flex;align-items:center;gap:.6em}
   .reg svg{width:13px;height:13px;display:block}
   .reg b{color:var(--ink);font-weight:400;letter-spacing:.14em}
-  .coords{text-align:right;line-height:1.5}
-  @media (max-width:560px){ .coords{display:none} }
+  .coords{text-align:right;line-height:1.5;white-space:nowrap}
+  /* On narrow phones keep the coordinates but shrink them a touch so the top bar never crowds or wraps. */
+  @media (max-width:560px){ .coords{font-size:.56rem;letter-spacing:.08em} }
 
   /* ---- main ---- */
   .main{
