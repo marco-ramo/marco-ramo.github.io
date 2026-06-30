@@ -125,7 +125,7 @@
   /* ---- top bar ---- */
   .topbar{
     flex:0 0 auto;
-    display:flex;justify-content:space-between;align-items:center;gap:16px;
+    display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
     font-size:clamp(.58rem,1.45vmin,.72rem);
     letter-spacing:.16em;text-transform:uppercase;color:var(--soft);
   }
@@ -180,7 +180,8 @@
   }
   .spec dt{
     color:var(--soft);text-transform:uppercase;letter-spacing:.13em;
-    font-size:.78em;padding-top:.18em;white-space:nowrap;
+    font-size:.78em;white-space:nowrap;
+    align-self:end;
   }
   .spec dd{color:var(--ink)}
   .spec dd .sep{color:var(--hair);margin:0 .35em}
@@ -288,7 +289,7 @@
           <dd>Amsterdam,&nbsp;NL <span class="sep">/</span> Venice,&nbsp;IT</dd>
 
           <dt>Current</dt>
-          <dd>Integrated&nbsp;Media&nbsp;Director @&nbsp;Nike</dd>
+          <dd>Integrated&nbsp;Media&nbsp;Director @&nbsp;<a class="lk" href="https://about.nike.com/en/" target="_blank" rel="noopener">Nike <span class="arw">↗</span></a></dd>
 
           <dt>Studio</dt>
           <!-- Placeholder: points to homepage until the studio/app pages exist. Swap href when ready. -->
