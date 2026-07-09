@@ -66,7 +66,8 @@
   "knowsAbout": ["Growth Marketing", "Performance Marketing", "Paid Media", "Ecommerce", "Analytics"],
   "sameAs": [
     "https://www.linkedin.com/in/marcoramo/",
-    "https://www.instagram.com/marcoramo/"
+    "https://www.instagram.com/marcoramo/",
+    "https://www.threads.com/@marcoramo"
   ]
 }
 </script>
@@ -149,6 +150,13 @@
     background:var(--paper);
     max-height:min(20svh,150px);
     width:auto;display:block;
+    /* Aesthetic flourish: clip small right-triangles off the top-left
+       and bottom-right corners. */
+    clip-path:polygon(
+      18px 0, 100% 0,
+      100% calc(100% - 18px), calc(100% - 18px) 100%,
+      0 100%, 0 18px
+    );
   }
   .ident{display:flex;flex-direction:column;gap:clamp(10px,2vmin,18px);min-width:0}
 
@@ -174,18 +182,20 @@
     font-size:clamp(.74rem,1.85vmin,.95rem);
     line-height:1.35;
     max-width:46ch;
+    /* Baseline-align each label to the FIRST line of its value, so a value
+       that wraps to two lines doesn't drag the label down to the last line. */
+    align-items:baseline;
   }
   .spec dt{
     color:var(--soft);text-transform:uppercase;letter-spacing:.13em;
     font-size:.78em;white-space:nowrap;
-    align-self:end;
   }
   .spec dd{color:var(--ink)}
   .spec dd .sep{color:var(--hair);margin:0 .35em}
 
   /* invert-on-hover link */
   .lk{
-    position:relative;display:inline;
+    position:relative;display:inline;white-space:nowrap;
     color:var(--ink);
     box-decoration-break:clone;-webkit-box-decoration-break:clone;
     padding:.04em .2em;margin:0 -.2em;
@@ -208,7 +218,7 @@
   /* ---- footer ---- */
   .foot{
     flex:0 0 auto;
-    display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
+    display:flex;justify-content:space-between;align-items:baseline;gap:16px;
     font-size:clamp(.58rem,1.45vmin,.72rem);
     letter-spacing:.14em;text-transform:uppercase;color:var(--soft);
   }
@@ -284,10 +294,6 @@
           <dt>Working</dt>
           <dd>Integrated&nbsp;Media&nbsp;Director @&nbsp;<a class="lk" href="https://about.nike.com/en/" target="_blank" rel="noopener">Nike <span class="arw">↗</span></a></dd>
 
-          <dt>Founder</dt>
-          <!-- Placeholder: points to homepage until the company/app pages exist. Swap href when ready. -->
-          <dd><a class="lk" href="/">Human&nbsp;Human,&nbsp;Inc. <span class="arw">↗</span></a></dd>
-
           <dt>Making</dt>
           <dd>
             <a class="lk" href="/">Method <span class="arw">↗</span></a>
@@ -297,11 +303,17 @@
             <a class="lk" href="/">VertiCal <span class="arw">↗</span></a>
           </dd>
 
+          <dt>Founder</dt>
+          <!-- Placeholder: points to homepage until the company/app pages exist. Swap href when ready. -->
+          <dd><a class="lk" href="/">Human&nbsp;Human,&nbsp;Inc. <span class="arw">↗</span></a></dd>
+
           <dt>Contact</dt>
           <dd>
             <a class="lk" href="https://www.linkedin.com/in/marcoramo/" target="_blank" rel="me noopener">LinkedIn <span class="arw">↗</span></a>
             <span class="sep">·</span>
             <a class="lk" href="https://www.instagram.com/marcoramo/" target="_blank" rel="me noopener">Instagram <span class="arw">↗</span></a>
+            <span class="sep">·</span>
+            <a class="lk" href="https://www.threads.com/@marcoramo" target="_blank" rel="me noopener">Threads <span class="arw">↗</span></a>
             <span class="sep">·</span>
             <a class="lk" href="mailto:contact@marcoramo.me">Email <span class="arw">↗</span></a>
           </dd>
