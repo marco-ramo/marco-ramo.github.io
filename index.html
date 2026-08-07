@@ -8,7 +8,7 @@
 <title>Marco Ramo — About</title>
 <meta name="description" content="Growth Marketing Leader based across Amsterdam and Venice">
 <meta name="author" content="Marco Ramo">
-<meta name="keywords" content="Marco Ramo, Marco Ramo Amsterdam, Marco Ramo Venice, Marco Ramo Venezia, Marco Ramo Mestre, Marco Ramo Italy, Marco Ramo Italia, Marco Ramo Nike, Integrated Media Director, Growth Marketing Leader, Human Human Inc, Method app, Voices app, VertiCal app">
+<meta name="keywords" content="Marco Ramo, Marco Ramo Amsterdam, Marco Ramo Venice, Marco Ramo Venezia, Marco Ramo Mestre, Marco Ramo Italy, Marco Ramo Italia, Marco Ramo Nike, Integrated Media Director, Growth Marketing Leader, Method app, Voices app">
 <link rel="canonical" href="https://marcoramo.me/">
 <!-- PRE-LAUNCH: the line below hides the page from search engines while keeping it
      fully viewable by anyone with the link. When you're ready to be discoverable,
@@ -132,8 +132,8 @@
   .reg svg{width:13px;height:13px;display:block}
   .reg b{color:var(--soft);font-weight:400;letter-spacing:.14em}
   .coords{text-align:right;line-height:1.5;white-space:nowrap}
-  /* On narrow phones keep the coordinates but shrink them a touch so the top bar never crowds or wraps. */
-  @media (max-width:560px){ .coords{font-size:.56rem;letter-spacing:.08em} }
+  /* On narrow phones keep the coordinates but shrink them a touch so neither bar crowds or wraps. */
+  @media (max-width:560px){ .coords,.foot .geo{font-size:.56rem;letter-spacing:.08em} }
 
   /* ---- main ---- */
   .main{
@@ -221,9 +221,8 @@
     font-size:clamp(.58rem,1.45vmin,.72rem);
     letter-spacing:.14em;text-transform:uppercase;color:var(--soft);
   }
-  .foot .dom{color:var(--soft);font-family:"Libre Barcode 128",system-ui,monospace;font-size:2em;letter-spacing:normal;line-height:1}
-  .foot .colo{text-align:right;line-height:1.5;max-width:30ch}
-  @media (max-height:560px){ .foot .colo{display:none} }
+  .foot .geo{line-height:1.5;white-space:nowrap}
+  .foot .dom{color:var(--soft);font-family:"Libre Barcode 128",system-ui,monospace;font-size:2em;letter-spacing:normal;line-height:1;text-align:right}
 
   /* ====== WIDE / LANDSCAPE: two columns ====== */
   @media (min-width:880px) and (min-height:480px){
@@ -274,7 +273,7 @@
         <b>marcoramo.me</b>
       </span>
       <span class="coords" aria-hidden="true">
-        Amsterdam&nbsp;52.37°N&nbsp;4.90°E<br>Venezia&nbsp;45.44°N&nbsp;12.32°E
+        Amsterdam&nbsp;52.37°N&nbsp;4.90°E
       </span>
     </header>
 
@@ -295,9 +294,9 @@
 
           <dt>Making</dt>
           <dd>
-            <a class="lk" href="/">Method <span class="arw">↗</span></a>
-            <span class="sep">·</span>
             <a class="lk" href="/">Voices <span class="arw">↗</span></a>
+            <span class="sep">·</span>
+            <a class="lk" href="/">Method <span class="arw">↗</span></a>
           </dd>
 
           <dt>Contact</dt>
@@ -315,8 +314,8 @@
     </section>
 
     <footer class="foot reveal d4">
+      <span class="geo" aria-hidden="true">Venezia&nbsp;45.44°N&nbsp;12.32°E</span>
       <span class="dom">Marco&nbsp;Ramo</span>
-      <span class="colo" aria-hidden="true">Human&nbsp;Human,&nbsp;Inc.</span>
     </footer>
   </main>
 </body>
