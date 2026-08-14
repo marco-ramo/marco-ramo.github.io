@@ -219,7 +219,10 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
       0 100%, 0 12px
     );
   }
-  .ident{display:flex;flex-direction:column;gap:clamp(14px,2.6vmin,24px);min-width:0}
+  /* The only gap this sets is the one between the name and the spec sheet -- they are
+     the block's only two children. Widened on 2026-08-14 at Marco's request, from
+     clamp(14px,2.6vmin,24px), roughly doubling the breathing room at every size. */
+  .ident{display:flex;flex-direction:column;gap:clamp(26px,4.8vmin,46px);min-width:0}
 
   h1.name{
     font-family:"Tomorrow",sans-serif;
