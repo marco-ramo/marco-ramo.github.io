@@ -166,14 +166,13 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   .reg b{color:var(--soft);font-weight:400;letter-spacing:.14em}
   .coords{text-align:right;line-height:1.5;white-space:nowrap}
   /* On narrow phones keep the coordinates but shrink them a touch so neither bar crowds or wraps. */
-  @media (max-width:560px){ .coords,.foot .geo{font-size:.56rem;letter-spacing:.08em} }
+  @media (max-width:560px){ .coords{font-size:.56rem;letter-spacing:.08em} }
 
   /* ---- theme switch ---- */
-  /* Bottom-right, on its own footer row directly above the barcode. Deliberately
+  /* Alone in the bottom-right corner, the mark that corner carries. Deliberately
      faint: it rests at 45% opacity and only comes up to full on hover or keyboard
-     focus, so it stays a utility rather than a fifth mark competing for attention. */
+     focus, so it reads as a utility rather than shouting from the corner. */
   .theme{
-    grid-area:switch;justify-self:end;
     display:inline-flex;align-items:center;gap:2px;
     border:1px solid var(--hair);padding:1px;
     opacity:.45;
@@ -280,21 +279,14 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   /* ---- footer ---- */
   .foot{
     flex:0 0 auto;
-    /* Grid, not flex, so the switch can sit on its own row above the barcode while
-       the coordinates and the barcode stay on one row -- keeping the deliberate
-       baseline alignment between those two exactly as it was. */
-    display:grid;
-    grid-template-columns:1fr auto;
-    grid-template-areas:
-      ".   switch"
-      "geo barcode";
-    align-items:baseline;
-    column-gap:16px;row-gap:7px;
+    /* Two marks only: the barcode on the left, the theme switch on the right. There is
+       no longer any text down here, so the old baseline alignment has nothing to align
+       to -- the barcode and the switch are centred against each other instead. */
+    display:flex;justify-content:space-between;align-items:center;gap:16px;
     font-size:clamp(.58rem,1.45vmin,.72rem);
     letter-spacing:.14em;text-transform:uppercase;color:var(--soft);
   }
-  .foot .geo{grid-area:geo;line-height:1.5;white-space:nowrap}
-  .foot .dom{grid-area:barcode;color:var(--soft);font-family:"Libre Barcode 128",system-ui,monospace;font-size:2em;letter-spacing:normal;line-height:1;text-align:right}
+  .foot .dom{color:var(--soft);font-family:"Libre Barcode 128",system-ui,monospace;font-size:2em;letter-spacing:normal;line-height:1;text-align:left}
 
   /* ====== WIDE / LANDSCAPE: two columns ====== */
   @media (min-width:880px) and (min-height:480px){
@@ -346,7 +338,8 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
         <b>marcoramo.me</b>
       </span>
       <span class="coords" aria-hidden="true">
-        Amsterdam&nbsp;52.37°N&nbsp;4.90°E
+        Amsterdam&nbsp;52.37°N&nbsp;4.90°E<br>
+        Venezia&nbsp;45.44°N&nbsp;12.32°E
       </span>
     </header>
 
@@ -388,7 +381,7 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
     </section>
 
     <footer class="foot reveal d4">
-      <span class="geo" aria-hidden="true">Venezia&nbsp;45.44°N&nbsp;12.32°E</span>
+      <span class="dom">Marco&nbsp;Ramo</span>
       <div class="theme" id="theme" role="radiogroup" aria-label="Colour theme">
         <button type="button" role="radio" data-mode="light" aria-checked="false" aria-label="Light" title="Light">
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
@@ -408,7 +401,6 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
           </svg>
         </button>
       </div>
-      <span class="dom">Marco&nbsp;Ramo</span>
     </footer>
   </main>
 
