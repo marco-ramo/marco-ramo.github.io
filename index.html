@@ -15,7 +15,16 @@
      replace it with:
      <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1"> -->
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#000000" id="theme-color">
+
+<!-- ============ THEME ============ -->
+<!-- Runs before first paint so a saved light choice never flashes dark. Sets
+     data-theme to "light", "dark" or "system" on <html>. With JavaScript off the
+     attribute is never set, and the stylesheet falls back to the OS preference. -->
+<script>
+(function(){var m=null;try{m=localStorage.getItem("mr-theme")}catch(e){}
+document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"system")})();
+</script>
 
 <!-- ============ ICONS ============ -->
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -84,6 +93,29 @@
     --spot:#ff2a17;
     --pad:clamp(16px,3.2vmin,34px);
   }
+  /* Light mode. The paper is the same off-white the portrait is drawn on, so the
+     portrait's panel merges into the page and the blue face appears to float. That
+     also means the 45 degree corner notches stop reading in light mode -- deliberate.
+     The spot red is darkened here: #ff2a17 manages only 3.2:1 against off-white,
+     which is marginal for a focus ring, where #d81f0e reaches 4.3:1. */
+  :root[data-theme="light"]{
+    --paper:#ebece9;
+    --ink:#000000;
+    --soft:#4f4f48;
+    --hair:rgba(0,0,0,.16);
+    --spot:#d81f0e;
+  }
+  /* "System" follows the OS. The second selector is the no-JavaScript case, where
+     data-theme is never set on <html> at all. */
+  @media (prefers-color-scheme:light){
+    :root[data-theme="system"],:root:not([data-theme]){
+      --paper:#ebece9;
+      --ink:#000000;
+      --soft:#4f4f48;
+      --hair:rgba(0,0,0,.16);
+      --spot:#d81f0e;
+    }
+  }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{
@@ -94,6 +126,7 @@
     overflow:hidden;
     -webkit-font-smoothing:antialiased;
     text-rendering:optimizeLegibility;
+    transition:background-color .28s ease,color .28s ease;
   }
   a{color:inherit;text-decoration:none}
   ::selection{background:var(--ink);color:var(--paper)}
@@ -134,6 +167,36 @@
   .coords{text-align:right;line-height:1.5;white-space:nowrap}
   /* On narrow phones keep the coordinates but shrink them a touch so neither bar crowds or wraps. */
   @media (max-width:560px){ .coords,.foot .geo{font-size:.56rem;letter-spacing:.08em} }
+
+  /* ---- theme switch ---- */
+  /* Bottom-right, on its own footer row directly above the barcode. Deliberately
+     faint: it rests at 45% opacity and only comes up to full on hover or keyboard
+     focus, so it stays a utility rather than a fifth mark competing for attention. */
+  .theme{
+    grid-area:switch;justify-self:end;
+    display:inline-flex;align-items:center;gap:2px;
+    border:1px solid var(--hair);padding:1px;
+    opacity:.45;
+    transition:opacity .22s ease;
+  }
+  .theme:focus-within{opacity:1}
+  @media (hover:hover) and (pointer:fine){ .theme:hover{opacity:1} }
+  .theme button{
+    appearance:none;-webkit-appearance:none;
+    background:none;border:0;margin:0;padding:0;
+    width:22px;height:18px;
+    display:grid;place-items:center;
+    color:var(--soft);cursor:pointer;
+    transition:background-color .18s,color .18s;
+  }
+  .theme svg{width:11px;height:11px;display:block}
+  /* Selected state is a faint wash plus full-strength ink, rather than the hard
+     inverted block it used before -- quieter, still unambiguous. */
+  .theme button[aria-checked="true"]{background:var(--hair);color:var(--ink)}
+  .theme button:focus-visible{outline:2px solid var(--spot);outline-offset:2px}
+  @media (hover:hover) and (pointer:fine){
+    .theme button:not([aria-checked="true"]):hover{color:var(--ink)}
+  }
 
   /* ---- main ---- */
   .main{
@@ -217,12 +280,21 @@
   /* ---- footer ---- */
   .foot{
     flex:0 0 auto;
-    display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+    /* Grid, not flex, so the switch can sit on its own row above the barcode while
+       the coordinates and the barcode stay on one row -- keeping the deliberate
+       baseline alignment between those two exactly as it was. */
+    display:grid;
+    grid-template-columns:1fr auto;
+    grid-template-areas:
+      ".   switch"
+      "geo barcode";
+    align-items:baseline;
+    column-gap:16px;row-gap:7px;
     font-size:clamp(.58rem,1.45vmin,.72rem);
     letter-spacing:.14em;text-transform:uppercase;color:var(--soft);
   }
-  .foot .geo{line-height:1.5;white-space:nowrap}
-  .foot .dom{color:var(--soft);font-family:"Libre Barcode 128",system-ui,monospace;font-size:2em;letter-spacing:normal;line-height:1;text-align:right}
+  .foot .geo{grid-area:geo;line-height:1.5;white-space:nowrap}
+  .foot .dom{grid-area:barcode;color:var(--soft);font-family:"Libre Barcode 128",system-ui,monospace;font-size:2em;letter-spacing:normal;line-height:1;text-align:right}
 
   /* ====== WIDE / LANDSCAPE: two columns ====== */
   @media (min-width:880px) and (min-height:480px){
@@ -257,6 +329,7 @@
   @keyframes fade{to{opacity:1}}
   @media (prefers-reduced-motion:reduce){
     .reveal{animation:none;opacity:1;transform:none}
+    body,.theme button{transition:none}
   }
 </style>
 </head>
@@ -310,13 +383,75 @@
             <a class="lk" href="mailto:contact@marcoramo.me">Email <span class="arw">↗</span></a>
           </dd>
         </dl>
+
       </div>
     </section>
 
     <footer class="foot reveal d4">
       <span class="geo" aria-hidden="true">Venezia&nbsp;45.44°N&nbsp;12.32°E</span>
+      <div class="theme" id="theme" role="radiogroup" aria-label="Colour theme">
+        <button type="button" role="radio" data-mode="light" aria-checked="false" aria-label="Light" title="Light">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>
+            <path d="M12 2.4v2.1M12 19.8v2.1M2.4 12h2.1M19.8 12h2.1M5.4 5.4l1.5 1.5M17.1 17.1l1.5 1.5M18.6 5.4l-1.5 1.5M6.9 17.1l-1.5 1.5"/>
+          </svg>
+        </button>
+        <button type="button" role="radio" data-mode="system" aria-checked="false" aria-label="Match system" title="Match system">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="1.9"/>
+            <path d="M12 3.6a8.4 8.4 0 0 0 0 16.8Z" fill="currentColor"/>
+          </svg>
+        </button>
+        <button type="button" role="radio" data-mode="dark" aria-checked="false" aria-label="Dark" title="Dark">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20.6 14.9A9.2 9.2 0 0 1 9.1 3.4a9.2 9.2 0 1 0 11.5 11.5Z" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
       <span class="dom">Marco&nbsp;Ramo</span>
     </footer>
   </main>
+
+<script>
+(function(){
+  var KEY="mr-theme",
+      root=document.documentElement,
+      group=document.getElementById("theme"),
+      meta=document.getElementById("theme-color");
+  if(!group) return;
+  var btns=[].slice.call(group.querySelectorAll("button[data-mode]")),
+      mq=window.matchMedia("(prefers-color-scheme: light)");
+
+  function apply(mode){
+    root.setAttribute("data-theme",mode);
+    btns.forEach(function(b){
+      var on=b.getAttribute("data-mode")===mode;
+      b.setAttribute("aria-checked",on?"true":"false");
+      b.tabIndex=on?0:-1;                      /* roving tabindex: one stop for the group */
+    });
+    var light=mode==="light"||(mode==="system"&&mq.matches);
+    if(meta) meta.setAttribute("content",light?"#ebece9":"#000000");
+  }
+  function choose(mode,moveFocus){
+    try{localStorage.setItem(KEY,mode)}catch(e){}
+    apply(mode);
+    if(moveFocus){var b=group.querySelector('[data-mode="'+mode+'"]');if(b)b.focus()}
+  }
+  btns.forEach(function(b,i){
+    b.addEventListener("click",function(){choose(b.getAttribute("data-mode"),false)});
+    b.addEventListener("keydown",function(e){
+      var d=(e.key==="ArrowRight"||e.key==="ArrowDown")?1:(e.key==="ArrowLeft"||e.key==="ArrowUp")?-1:0;
+      if(!d) return;
+      e.preventDefault();
+      choose(btns[(i+d+btns.length)%btns.length].getAttribute("data-mode"),true);
+    });
+  });
+  /* Keep "system" honest if the OS flips while the page is open. */
+  var onChange=function(){if(root.getAttribute("data-theme")==="system") apply("system")};
+  mq.addEventListener?mq.addEventListener("change",onChange):mq.addListener(onChange);
+
+  apply(root.getAttribute("data-theme")||"system");
+})();
+</script>
 </body>
 </html>
