@@ -209,7 +209,7 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   .portrait{
     align-self:center;justify-self:start;
     background:var(--paper);
-    max-height:min(20svh,150px);
+    max-height:min(16svh,118px);
     width:auto;display:block;
     /* Aesthetic flourish: clip small right-triangles off the top-left
        and bottom-right corners. */
@@ -222,7 +222,7 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   /* The only gap this sets is the one between the name and the spec sheet -- they are
      the block's only two children. Widened on 2026-08-14 at Marco's request, from
      clamp(14px,2.6vmin,24px), roughly doubling the breathing room at every size. */
-  .ident{display:flex;flex-direction:column;gap:clamp(26px,4.8vmin,46px);min-width:0}
+  .ident{display:flex;flex-direction:column;gap:clamp(36px,6.6vmin,64px);min-width:0}
 
   h1.name{
     font-family:"Tomorrow",sans-serif;
@@ -301,14 +301,14 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
       gap:clamp(30px,3.6vw,58px);
       padding:0;
     }
-    .portrait{grid-area:portrait;max-height:min(40svh,260px);align-self:center}
+    .portrait{grid-area:portrait;max-height:min(32svh,205px);align-self:center}
     .ident{grid-area:ident}
     h1.name{font-size:clamp(3.2rem,8.4vmin,6.6rem)}
   }
   /* short landscape phones */
   @media (max-height:480px) and (orientation:landscape){
     .main{grid-template-columns:auto auto;justify-content:center;gap:clamp(20px,4vw,40px);align-items:center}
-    .portrait{max-height:min(56svh,175px)}
+    .portrait{max-height:min(45svh,138px)}
     h1.name{font-size:clamp(2rem,8vh,3.4rem)}
     .topbar,.foot{font-size:.56rem}
   }
