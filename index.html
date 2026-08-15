@@ -172,6 +172,15 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   /* Alone in the bottom-right corner, the mark that corner carries. Deliberately
      faint: it rests at 45% opacity and only comes up to full on hover or keyboard
      focus, so it reads as a utility rather than shouting from the corner. */
+  /* Right-hand stack in the footer: the font label sits directly above the switch. */
+  .tools{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+  .fontname{
+    font-size:.52rem;letter-spacing:.16em;line-height:1;
+    color:var(--soft);opacity:.45;white-space:nowrap;
+    transition:opacity .22s ease;
+  }
+  .tools:hover .fontname,.tools:focus-within .fontname{opacity:1}
+
   .theme{
     display:inline-flex;align-items:center;gap:2px;
     border:1px solid var(--hair);padding:1px;
@@ -233,15 +242,36 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   .ident{display:flex;flex-direction:column;gap:clamp(36px,6.6vmin,64px);min-width:0}
 
   h1.name{
-    font-family:"Tomorrow",sans-serif;
+    /* Tapping the name swaps these four variables. --name-scale is a per-typeface
+       correction measured from each font's real cap height, so every face renders the
+       name at the same letter height as Tomorrow. Note that line-height and margin are
+       computed from the UNSCALED --name-size, which keeps the two-line block exactly the
+       same height whichever face is showing -- otherwise the layout would shift on
+       every tap. The three breakpoints below set --name-size rather than font-size. */
+    --name-size:clamp(2.5rem,13vmin,7rem);
+    --name-family:"Tomorrow";
+    --name-weight:600;
+    --name-scale:1;
+    --name-track:-.022em;
+    font-family:var(--name-family),sans-serif;
     font-optical-sizing:auto;
-    font-weight:600;
+    font-weight:var(--name-weight);
     text-transform:uppercase;
-    line-height:.82;
-    letter-spacing:-.022em;
-    font-size:clamp(2.5rem,13vmin,7rem);
-    margin-block:-.03em;
+    font-size:calc(var(--name-size) * var(--name-scale));
+    line-height:calc(var(--name-size) * .82);
+    letter-spacing:var(--name-track);
+    margin-block:calc(var(--name-size) * -.03);
   }
+  /* The heading stays a heading; the script wraps its text in this button so the
+     typeface can be changed from the keyboard as well as by tapping. */
+  .namebtn{
+    appearance:none;-webkit-appearance:none;
+    background:none;border:0;margin:0;padding:0;
+    font-family:inherit;font-size:inherit;font-weight:inherit;line-height:inherit;
+    letter-spacing:inherit;color:inherit;text-transform:inherit;
+    display:block;text-align:left;cursor:pointer;
+  }
+  .namebtn:focus-visible{outline:2px solid var(--spot);outline-offset:6px}
   h1.name span{display:block}
   h1.name .r2{margin-left:0}
 
@@ -311,13 +341,13 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
     }
     .portrait{grid-area:portrait;max-height:min(32svh,205px);align-self:center}
     .ident{grid-area:ident}
-    h1.name{font-size:clamp(3.2rem,8.4vmin,6.6rem)}
+    h1.name{--name-size:clamp(3.2rem,8.4vmin,6.6rem)}
   }
   /* short landscape phones */
   @media (max-height:480px) and (orientation:landscape){
     .main{grid-template-columns:auto auto;justify-content:center;gap:clamp(20px,4vw,40px);align-items:center}
     .portrait{max-height:min(45svh,138px)}
-    h1.name{font-size:clamp(2rem,8vh,3.4rem)}
+    h1.name{--name-size:clamp(2rem,8vh,3.4rem)}
     .topbar,.foot{font-size:.56rem}
   }
 
@@ -393,6 +423,8 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
 
     <footer class="foot reveal d4">
       <span class="dom">Marco&nbsp;Ramo</span>
+      <div class="tools">
+      <span class="fontname" id="fontname" aria-live="polite">Tomorrow</span>
       <div class="theme" id="theme" role="radiogroup" aria-label="Colour theme">
         <button type="button" role="radio" data-mode="light" aria-checked="false" aria-label="Light" title="Light">
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
@@ -411,6 +443,7 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
             <path d="M20.6 14.9A9.2 9.2 0 0 1 9.1 3.4a9.2 9.2 0 1 0 11.5 11.5Z" fill="currentColor"/>
           </svg>
         </button>
+      </div>
       </div>
     </footer>
   </main>
@@ -503,6 +536,64 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   });
   /* If a fetched version cannot load, fall back to the embedded one, which cannot fail. */
   img.addEventListener("error",function(){ if(i!==0) show(0); });
+})();
+</script>
+
+<script>
+(function(){
+  var name=document.querySelector("h1.name"), label=document.getElementById("fontname");
+  if(!name) return;
+
+  /* Tomorrow stays the primary face and the one the page loads with. The rest are fetched
+     only when a tap first reaches them, so a visitor who never taps pays nothing and the
+     initial render still asks Google Fonts for exactly the three families it always did.
+     scale is measured from each font's real cap height against Tomorrow's, so the name
+     keeps the same letter height throughout. weight is the closest each family offers to
+     Tomorrow's 600 -- Sharpie, Hoover and Nippo have no 600, and Instrument Serif ships
+     in a single 400. */
+  var FACES=[
+    {label:"Tomorrow",         family:"Tomorrow",         weight:600, scale:1,      track:"-.022em", css:null},
+    {label:"Clash Display",    family:"Clash Display",    weight:600, scale:1.0681, track:"-.022em", css:"https://api.fontshare.com/v2/css?f[]=clash-display@600&display=swap"},
+    {label:"Sharpie",          family:"Sharpie",          weight:700, scale:1.0208, track:"0em",     css:"https://api.fontshare.com/v2/css?f[]=sharpie@700&display=swap"},
+    {label:"Public Sans",      family:"Public Sans",      weight:600, scale:0.9919, track:"-.022em", css:"https://api.fontshare.com/v2/css?f[]=public-sans@600&display=swap"},
+    {label:"Hoover",           family:"Hoover",           weight:700, scale:1.0439, track:"-.022em", css:"https://api.fontshare.com/v2/css?f[]=hoover@700&display=swap"},
+    {label:"Nippo",            family:"Nippo",            weight:700, scale:1.0529, track:"-.022em", css:"https://api.fontshare.com/v2/css?f[]=nippo@700&display=swap"},
+    {label:"Instrument Serif", family:"Instrument Serif", weight:400, scale:0.9973, track:"0em",     css:"https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap"}
+  ];
+  var i=0;
+
+  function ensure(f){
+    if(!f || !f.css || f.asked) return;
+    f.asked=true;
+    var l=document.createElement("link");
+    l.rel="stylesheet"; l.href=f.css;
+    document.head.appendChild(l);
+  }
+  function apply(n){
+    i=(n+FACES.length)%FACES.length;
+    var f=FACES[i];
+    ensure(f);
+    name.style.setProperty("--name-family",'"'+f.family+'"');
+    name.style.setProperty("--name-weight",f.weight);
+    name.style.setProperty("--name-scale",f.scale);
+    name.style.setProperty("--name-track",f.track);
+    if(label) label.textContent=f.label;
+    ensure(FACES[(i+1)%FACES.length]);   /* fetch the next one while this one is being read */
+  }
+
+  /* Wrap the heading's text in a real button, so the h1 keeps its heading semantics and
+     the control is keyboard-operable for free. Built here rather than in the markup so a
+     visitor without JavaScript gets a plain heading and no dead button. */
+  var btn=document.createElement("button");
+  btn.type="button";
+  btn.className="namebtn";
+  btn.setAttribute("aria-label","Marco Ramo. Activate to change the typeface.");
+  btn.title="Tap to change the typeface";
+  while(name.firstChild) btn.appendChild(name.firstChild);
+  name.appendChild(btn);
+
+  btn.addEventListener("pointerdown",function(){ ensure(FACES[(i+1)%FACES.length]); },{once:true});
+  btn.addEventListener("click",function(e){ e.preventDefault(); apply(i+1); });
 })();
 </script>
 </body>
