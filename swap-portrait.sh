@@ -58,7 +58,7 @@ list_portraits() {
   printf '\n* = currently live in %s\n' "$HTML"
 }
 
-[ $# -eq 1 ] || { sed -n '5,20p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+[ $# -eq 1 ] || { sed -n '5,18p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 [ -d "$DIR" ] || die "no $DIR/ directory"
 
 case "$1" in

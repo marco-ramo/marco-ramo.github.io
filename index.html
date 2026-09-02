@@ -15,7 +15,8 @@
      replace it with:
      <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1"> -->
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#000000" id="theme-color">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" id="theme-color">
+<meta name="theme-color" content="#ebece9" media="(prefers-color-scheme: light)">
 
 <!-- ============ THEME ============ -->
 <!-- Runs before first paint so a saved light choice never flashes dark. Sets
@@ -467,7 +468,7 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
       b.tabIndex=on?0:-1;                      /* roving tabindex: one stop for the group */
     });
     var light=mode==="light"||(mode==="system"&&mq.matches);
-    if(meta) meta.setAttribute("content",light?"#ebece9":"#000000");
+    if(meta){meta.removeAttribute("media");meta.setAttribute("content",light?"#ebece9":"#000000");}
   }
   function choose(mode,moveFocus){
     try{localStorage.setItem(KEY,mode)}catch(e){}
