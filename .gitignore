@@ -1,5 +1,11 @@
 # Local-only notes for Claude Code — never publish this file
 CLAUDE.md
 
+# Per-machine Claude Code settings — never publish this file. It records absolute
+# paths and the account name of whatever machine it was written on, and this
+# repository is public. Only this one file: .claude/settings.json is the committed
+# dispatch envelope and must stay tracked.
+.claude/settings.local.json
+
 # macOS Finder metadata (created automatically; shouldn't be committed)
 .DS_Store
