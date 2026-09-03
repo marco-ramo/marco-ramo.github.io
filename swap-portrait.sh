@@ -29,19 +29,24 @@ MAX_BYTES=250000       # ditto — index.html grows by ~4/3 of this
 die() { printf 'error: %s\n' "$1" >&2; exit 1; }
 
 # The sha256 of the image currently embedded in index.html, so --list can mark it.
+# The regex assumes the portrait <img> writes class before src and starts its class list
+# with "portrait". If the markup ever moves, print a sentinel rather than nothing: an
+# empty result would silently match no portrait and --list would render every file
+# unmarked under a legend promising a mark, which reads as "nothing is live".
+UNKNOWN="unknown"
 active_hash() {
   python3 - "$HTML" <<'PY'
 import base64, hashlib, re, sys
 html = open(sys.argv[1], encoding="utf-8").read()
 m = re.search(r'<img class="portrait[^"]*" src="data:image/jpeg;base64,([^"]*)"', html)
-if m:
-    print(hashlib.sha256(base64.b64decode(m.group(1))).hexdigest())
+print(hashlib.sha256(base64.b64decode(m.group(1))).hexdigest() if m else "unknown")
 PY
 }
 
 list_portraits() {
   local active found=0
   active="$(active_hash)"
+  [ "$active" != "$UNKNOWN" ] || die "could not identify the live portrait in $HTML — the portrait <img> markup no longer matches what active_hash looks for"
   printf 'Portraits in %s/\n\n' "$DIR"
   for f in "$DIR"/*.jpg "$DIR"/*.jpeg; do
     [ -e "$f" ] || continue

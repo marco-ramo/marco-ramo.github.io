@@ -98,6 +98,17 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
     --hair:rgba(235,236,233,.16);
     --spot:#ff2a17;
     --pad:clamp(16px,3.2vmin,34px);
+    /* The viewport meta declares viewport-fit=cover, which opts the page out of the
+       browser's automatic letterboxing inside the safe area, so the insets are ours to
+       apply. --pad never exceeds 34px and a notched iPhone in landscape reserves 44-47px
+       at the sides, which would put the wordmark and crop marks under the hardware.
+       Everything positioned against the page edge uses these four instead of --pad. The
+       0px fallback keeps them valid where env() is unsupported. --pad itself is left
+       alone, because the type scale keys off it. */
+    --pad-t:max(var(--pad),env(safe-area-inset-top,0px));
+    --pad-r:max(var(--pad),env(safe-area-inset-right,0px));
+    --pad-b:max(var(--pad),env(safe-area-inset-bottom,0px));
+    --pad-l:max(var(--pad),env(safe-area-inset-left,0px));
   }
   /* Light mode. The paper is the same off-white the portrait is drawn on, so the
      portrait's panel merges into the page and the blue face appears to float. That
@@ -141,13 +152,13 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   .sheet{
     position:relative;
     height:100svh;
-    padding:var(--pad);
+    padding:var(--pad-t) var(--pad-r) var(--pad-b) var(--pad-l);
     display:flex;
     flex-direction:column;
   }
   .frame{
     position:absolute;
-    inset:calc(var(--pad) * .62);
+    inset:calc(var(--pad-t) * .62) calc(var(--pad-r) * .62) calc(var(--pad-b) * .62) calc(var(--pad-l) * .62);
     pointer-events:none;
   }
   /* crop marks at the four corners */
@@ -155,10 +166,10 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   .crop::before,.crop::after{content:"";position:absolute;background:var(--ink)}
   .crop::before{width:14px;height:1px;top:0;left:0}
   .crop::after{width:1px;height:14px;top:0;left:0}
-  .crop.tl{top:calc(var(--pad) * .28);left:calc(var(--pad) * .28)}
-  .crop.tr{top:calc(var(--pad) * .28);right:calc(var(--pad) * .28);transform:scaleX(-1)}
-  .crop.bl{bottom:calc(var(--pad) * .28);left:calc(var(--pad) * .28);transform:scaleY(-1)}
-  .crop.br{bottom:calc(var(--pad) * .28);right:calc(var(--pad) * .28);transform:scale(-1)}
+  .crop.tl{top:calc(var(--pad-t) * .28);left:calc(var(--pad-l) * .28)}
+  .crop.tr{top:calc(var(--pad-t) * .28);right:calc(var(--pad-r) * .28);transform:scaleX(-1)}
+  .crop.bl{bottom:calc(var(--pad-b) * .28);left:calc(var(--pad-l) * .28);transform:scaleY(-1)}
+  .crop.br{bottom:calc(var(--pad-b) * .28);right:calc(var(--pad-r) * .28);transform:scale(-1)}
 
   /* ---- top bar ---- */
   .topbar{
@@ -500,13 +511,18 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   /* Newest first, then back through the older ones, wrapping around. Entry 0 is the copy
      already embedded as base64, so it costs no request. The rest are ordinary files in
      /portraits/, fetched only if someone actually taps -- embedding all four would have
-     added roughly 420KB of base64 to a page whose point is rendering instantly. */
+     added roughly 420KB of base64 to a page whose point is rendering instantly.
+
+     Each alt carries the affordance sentence as well as the description, because alt is
+     what a screen reader announces as the control's accessible name -- there is no static
+     aria-label above it any more, so this per-frame text is the only thing announced and
+     it has to say both what is on screen and what activating does. */
   var shots=[
-    {src:img.getAttribute("src"),              w:587,h:760,alt:"Portrait of Marco Ramo, blue duotone photograph."},
-    {src:"/portraits/blue-line-art-smile.jpg", w:587,h:760,alt:"Portrait of Marco Ramo, smiling, blue line drawing."},
-    {src:"/portraits/blue-line-art.jpg",       w:587,h:760,alt:"Portrait of Marco Ramo, blue line drawing."},
-    {src:"/portraits/black-line-art-smile.jpg",w:587,h:760,alt:"Portrait of Marco Ramo, smiling, black line drawing."},
-    {src:"/portraits/black-line-art.jpg",      w:587,h:760,alt:"Portrait of Marco Ramo, black line drawing."}
+    {src:img.getAttribute("src"),              w:587,h:760,alt:"Portrait of Marco Ramo, blue duotone photograph. Activate to show a previous version."},
+    {src:"/portraits/blue-line-art-smile.jpg", w:587,h:760,alt:"Portrait of Marco Ramo, smiling, blue line drawing. Activate to show a previous version."},
+    {src:"/portraits/blue-line-art.jpg",       w:587,h:760,alt:"Portrait of Marco Ramo, blue line drawing. Activate to show a previous version."},
+    {src:"/portraits/black-line-art-smile.jpg",w:587,h:760,alt:"Portrait of Marco Ramo, smiling, black line drawing. Activate to show a previous version."},
+    {src:"/portraits/black-line-art.jpg",      w:587,h:760,alt:"Portrait of Marco Ramo, black line drawing. Activate to show a previous version."}
   ];
   var i=0, warmed=false;
 
@@ -526,7 +542,9 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
 
   img.tabIndex=0;
   img.setAttribute("role","button");
-  img.setAttribute("aria-label","Portrait of Marco Ramo. Activate to show a previous version.");
+  /* No aria-label here on purpose. The accessible name is computed as aria-labelledby,
+     then aria-label, then alt -- so a static aria-label would win on every frame and the
+     five descriptions show() writes into alt would be announced to nobody. */
   img.title="Tap for a previous portrait";
 
   /* pointerdown fires before click on both mouse and touch, so the next file starts
@@ -570,7 +588,7 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
     l.rel="stylesheet"; l.href=f.css;
     document.head.appendChild(l);
   }
-  function apply(n){
+  function apply(n,warmNext){
     i=(n+FACES.length)%FACES.length;
     var f=FACES[i];
     ensure(f);
@@ -579,7 +597,9 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
     name.style.setProperty("--name-scale",f.scale);
     name.style.setProperty("--name-track",f.track);
     if(label) label.textContent=f.label;
-    ensure(FACES[(i+1)%FACES.length]);   /* fetch the next one while this one is being read */
+    /* Fetch the next one while this one is being read. Suppressed for the startup call,
+       where nothing has been tapped yet and a visitor who never taps must pay nothing. */
+    if(warmNext!==false) ensure(FACES[(i+1)%FACES.length]);
   }
 
   /* Wrap the heading's text in a real button, so the h1 keeps its heading semantics and
@@ -595,6 +615,14 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
 
   btn.addEventListener("pointerdown",function(){ ensure(FACES[(i+1)%FACES.length]); },{once:true});
   btn.addEventListener("click",function(e){ e.preventDefault(); apply(i+1); });
+
+  /* Derive the landing face from FACES[0] instead of trusting the CSS defaults and the
+     footer label to have been kept in step with it by hand. Without this, prepending a
+     new primary face to FACES leaves the page rendering the old one while i already points
+     at the new one, so the first tap lands on the face that was already on screen and
+     reads as broken. FACES[0].css is null, so this fetches nothing, and the false
+     suppresses the look-ahead prefetch so a load still costs exactly the requests it did. */
+  apply(0,false);
 })();
 </script>
 </body>

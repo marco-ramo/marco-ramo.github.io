@@ -8,7 +8,12 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-out=$(sh ./swap-portrait.sh 2>&1) && status=0 || status=$?
+# bash, not sh: the script's shebang names bash and it uses `set -o pipefail` and `local`.
+# Running it through /bin/sh works only where that is bash, as on macOS; under dash, which
+# is /bin/sh on Debian and Ubuntu and therefore on ubuntu-latest in CI, it would abort at
+# `set -o pipefail` with status 2 and this test would report a failure that has nothing to
+# do with the usage text it exists to check.
+out=$(bash ./swap-portrait.sh 2>&1) && status=0 || status=$?
 
 if [ "$status" -ne 1 ]; then
   echo "ams-03 FAIL: expected exit status 1 from an argument-less run, got $status"
