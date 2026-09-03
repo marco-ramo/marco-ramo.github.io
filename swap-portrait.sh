@@ -19,6 +19,11 @@
 
 set -euo pipefail
 
+# Resolve this script's own path before the cd. $0 keeps the word used to invoke it, so
+# after cd-ing to the script's directory a relative $0 would resolve somewhere else
+# entirely — and the usage path below reads the script's own comment header.
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+
 cd "$(dirname "$0")"
 
 HTML="index.html"
@@ -63,7 +68,7 @@ list_portraits() {
   printf '\n* = currently live in %s\n' "$HTML"
 }
 
-[ $# -eq 1 ] || { sed -n '5,18p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+[ $# -eq 1 ] || { sed -n '5,18p' "$SELF" | sed 's/^# \{0,1\}//'; exit 1; }
 [ -d "$DIR" ] || die "no $DIR/ directory"
 
 case "$1" in

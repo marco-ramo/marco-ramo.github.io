@@ -23,4 +23,9 @@ done
 echo "---"
 echo "$((passed + failed)) tests, $passed passed, $failed failed"
 
+# A run that found nothing is not a pass. With only run.sh present the glob matches just
+# this file, the continue skips it, and both counters stay 0 — so a test file that
+# quietly disappeared would lower the count and the suite would still exit 0.
+[ "$((passed + failed))" -gt 0 ] || { echo "run.sh: no tests found in $(pwd)"; exit 1; }
+
 [ "$failed" -eq 0 ] || exit 1
