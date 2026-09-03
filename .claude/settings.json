@@ -15,6 +15,7 @@
       "Bash(git branch:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
+      "Bash(git push origin main)",
       "Bash(sh:*)",
       "Bash(python3:*)",
       "Bash(sips:*)",
