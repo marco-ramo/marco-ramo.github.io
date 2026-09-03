@@ -7,8 +7,9 @@
 # legend promising a "*" — so the operator reads it as "nothing is live". The swap path
 # fails loudly on the identical breakage, which made the read-only path the unsafe one.
 #
-# This runs --list against a fixture copy whose <img> attributes are reordered, and
-# fails when the output lists portraits instead of naming the failure.
+# This runs --list against a fixture copy whose <img> has had its class attribute
+# stripped, so the tag no longer matches active_hash's regex, and fails when the output
+# lists portraits instead of naming the failure.
 
 set -eu
 cd "$(dirname "$0")/.."
@@ -20,8 +21,8 @@ trap 'rm -rf "$tmp"' EXIT
 cp swap-portrait.sh "$tmp/"
 ln -s "$repo/portraits" "$tmp/portraits"
 
-# Reorder the <img> attributes: class after src, and the class list reversed. Both are
-# ordinary edits that leave the page identical and defeat the regex.
+# Strip the class attribute off the <img>. That is an ordinary edit which leaves the
+# page's markup valid and defeats the regex, because active_hash matches on the class.
 sed 's|<img class="portrait reveal" src="|<img src="|' index.html > "$tmp/index.html"
 
 out=$(cd "$tmp" && bash ./swap-portrait.sh --list 2>&1) && status=0 || status=$?
