@@ -436,27 +436,11 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
 
     <footer class="foot reveal d4">
       <span class="dom">Marco&nbsp;Ramo</span>
-      <div class="tools">
+      <!-- The theme switch is built by the script below and appended here, so a visitor
+           without JavaScript gets three corner marks instead of four rather than a
+           radiogroup whose buttons do nothing. -->
+      <div class="tools" id="tools">
       <span class="fontname" id="fontname" aria-live="polite">Hoover Bold</span>
-      <div class="theme" id="theme" role="radiogroup" aria-label="Colour theme">
-        <button type="button" role="radio" data-mode="light" aria-checked="false" aria-label="Light" title="Light">
-          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
-            <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>
-            <path d="M12 2.4v2.1M12 19.8v2.1M2.4 12h2.1M19.8 12h2.1M5.4 5.4l1.5 1.5M17.1 17.1l1.5 1.5M18.6 5.4l-1.5 1.5M6.9 17.1l-1.5 1.5"/>
-          </svg>
-        </button>
-        <button type="button" role="radio" data-mode="system" aria-checked="false" aria-label="Match system" title="Match system">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="1.9"/>
-            <path d="M12 3.6a8.4 8.4 0 0 0 0 16.8Z" fill="currentColor"/>
-          </svg>
-        </button>
-        <button type="button" role="radio" data-mode="dark" aria-checked="false" aria-label="Dark" title="Dark">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M20.6 14.9A9.2 9.2 0 0 1 9.1 3.4a9.2 9.2 0 1 0 11.5 11.5Z" fill="currentColor"/>
-          </svg>
-        </button>
-      </div>
       </div>
     </footer>
   </main>
@@ -465,11 +449,40 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
 (function(){
   var KEY="mr-theme",
       root=document.documentElement,
-      group=document.getElementById("theme"),
+      tools=document.getElementById("tools"),
       meta=document.getElementById("theme-color");
-  if(!group) return;
-  var btns=[].slice.call(group.querySelectorAll("button[data-mode]")),
-      mq=window.matchMedia("(prefers-color-scheme: light)");
+  if(!tools) return;
+
+  /* Build the switch here rather than in the markup, the same way the portrait becomes a
+     button and the name becomes one: with JavaScript off, aria-checked is never set on
+     any of the three, so static markup would announce a radiogroup with nothing selected
+     -- an invalid ARIA state -- and put three buttons that do nothing into the tab order.
+     Built in script, a no-JS visitor simply gets three corner marks instead of four. */
+  var MODES=[
+    {mode:"light",label:"Light",svg:'<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/><path d="M12 2.4v2.1M12 19.8v2.1M2.4 12h2.1M19.8 12h2.1M5.4 5.4l1.5 1.5M17.1 17.1l1.5 1.5M18.6 5.4l-1.5 1.5M6.9 17.1l-1.5 1.5"/></svg>'},
+    {mode:"system",label:"Match system",svg:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 3.6a8.4 8.4 0 0 0 0 16.8Z" fill="currentColor"/></svg>'},
+    {mode:"dark",label:"Dark",svg:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 14.9A9.2 9.2 0 0 1 9.1 3.4a9.2 9.2 0 1 0 11.5 11.5Z" fill="currentColor"/></svg>'}
+  ];
+  var group=document.createElement("div");
+  group.className="theme";
+  group.id="theme";
+  group.setAttribute("role","radiogroup");
+  group.setAttribute("aria-label","Colour theme");
+  var btns=MODES.map(function(m){
+    var b=document.createElement("button");
+    b.type="button";
+    b.setAttribute("role","radio");
+    b.setAttribute("data-mode",m.mode);
+    b.setAttribute("aria-checked","false");
+    b.setAttribute("aria-label",m.label);
+    b.title=m.label;
+    b.innerHTML=m.svg;
+    group.appendChild(b);
+    return b;
+  });
+  tools.appendChild(group);
+
+  var mq=window.matchMedia("(prefers-color-scheme: light)");
 
   function apply(mode){
     root.setAttribute("data-theme",mode);

@@ -29,5 +29,22 @@ if [ "$lastmod" \< "$committed" ]; then
   exit 1
 fi
 
+# ams-21: the comparison above is against the last COMMIT touching index.html, so an
+# uncommitted edit moves neither side of it and the guard stays green through the exact
+# moment it exists to catch -- a leg edits index.html, leaves sitemap.xml alone, sees a
+# green suite, commits and pushes the stale sitemap, and the failure only appears on the
+# next run, after the deploy. So also fail while index.html is dirty in the working tree
+# and lastmod is older than today: that is the same staleness, caught before the commit.
+# The accepted cost is a red suite during an editing session that has not yet refreshed
+# the sitemap; refreshing lastmod to today's date clears it.
+if [ -n "$(git status --porcelain index.html 2>/dev/null)" ]; then
+  today=$(date +%F)
+  if [ "$lastmod" \< "$today" ]; then
+    echo "ams-15 FAIL: index.html has uncommitted changes but sitemap.xml still says $lastmod (today is $today)"
+    echo "ams-15       refresh <lastmod> in sitemap.xml to $today before committing"
+    exit 1
+  fi
+fi
+
 echo "ams-15 PASS: sitemap lastmod $lastmod is not older than index.html's last commit $committed"
 exit 0
