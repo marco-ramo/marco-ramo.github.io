@@ -334,8 +334,10 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   .foot{
     flex:0 0 auto;
     /* Two marks only: the barcode on the left, the theme switch on the right. There is
-       no longer any text down here, so the old baseline alignment has nothing to align
-       to -- the barcode and the switch are centred against each other instead. */
+       no longer any text down here, so the old align-items:baseline had nothing to align
+       to -- it sat the barcode's foot level with the Venezia coordinates, and those moved
+       to the top-right. align-items:flex-end replaces it, bottom-aligning the barcode to
+       the switch rather than centring the two against each other. */
     display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
     font-size:clamp(.58rem,1.45vmin,.72rem);
     letter-spacing:.14em;text-transform:uppercase;color:var(--soft);
@@ -537,12 +539,20 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
     {src:"/portraits/black-line-art-smile.jpg",w:587,h:760,alt:"Portrait of Marco Ramo, smiling, black line drawing. Activate to show a previous version."},
     {src:"/portraits/black-line-art.jpg",      w:587,h:760,alt:"Portrait of Marco Ramo, black line drawing. Activate to show a previous version."}
   ];
-  var i=0, warmed=false;
+  var i=0, warmed={};
 
-  function warm(){
-    if(warmed) return; warmed=true;
-    for(var n=1;n<shots.length;n++){ var pre=new Image(); pre.src=shots[n].src; }
+  /* Fetch exactly one file ahead, never the whole set: a visitor who brushes the portrait
+     on the way to a link pays for one image, not for all four alternates at once. The
+     font cycle below prefetches the same way. Keyed by src so a lap round the cycle does
+     not re-request what the browser already holds. */
+  function warm(n){
+    n=(n+shots.length)%shots.length;
+    if(n===0) return;                   /* shots[0] is the embedded base64 -- already here */
+    var s=shots[n];
+    if(warmed[s.src]) return; warmed[s.src]=true;
+    var pre=new Image(); pre.src=s.src;
   }
+  function warmNext(){ warm(i+1); }
   function show(n){
     i=(n+shots.length)%shots.length;
     var s=shots[i];
@@ -550,8 +560,11 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
     img.setAttribute("height",s.h);
     img.alt=s.alt;
     img.src=s.src;
+    /* Start the one after this while the visitor looks at it, so the next tap is instant
+       too. Only ever reached from a tap, so a visitor who never taps still pays nothing. */
+    warmNext();
   }
-  function step(e){ e.preventDefault(); warm(); show(i+1); }
+  function step(e){ e.preventDefault(); show(i+1); }
 
   img.tabIndex=0;
   img.setAttribute("role","button");
@@ -562,8 +575,8 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
 
   /* pointerdown fires before click on both mouse and touch, so the next file starts
      downloading a moment before it is needed. pointerenter covers unhurried desktop hovers. */
-  img.addEventListener("pointerenter",warm,{once:true});
-  img.addEventListener("pointerdown",warm,{once:true});
+  img.addEventListener("pointerenter",warmNext,{once:true});
+  img.addEventListener("pointerdown",warmNext,{once:true});
   img.addEventListener("click",step);
   img.addEventListener("keydown",function(e){
     if(e.key==="Enter"||e.key===" "||e.key==="Spacebar") step(e);
