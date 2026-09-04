@@ -96,7 +96,12 @@ if [ "$HEIGHT" -gt "$MAX_HEIGHT" ] || [ "$BYTES" -gt "$MAX_BYTES" ]; then
   printf '         The portrait never displays taller than 260px, so this is wasted weight.\n' >&2
   printf '         Resize it first:  sips --resampleHeight 760 %s\n\n' "$SRC" >&2
   printf 'Embed it anyway? [y/N] ' >&2
-  read -r reply
+  # `|| reply=""` matters: with stdin closed — a Makefile, a CI step, any shell with no
+  # controlling terminal — read returns 1 at end-of-file, and under `set -e` a bare read
+  # in statement position would kill the script right here, before the case below could
+  # say anything. Falling through with an empty reply reaches the same "cancelled" the
+  # operator would get by pressing return, so a non-interactive run is refused out loud.
+  read -r reply || reply=""
   case "$reply" in [yY]*) ;; *) die "cancelled" ;; esac
 fi
 
