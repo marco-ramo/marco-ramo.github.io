@@ -7,7 +7,6 @@
       "Write(//Users/marcoramo/hq/knowledge-base/**)",
       "Edit(//Users/marcoramo/hq/knowledge-base/**)",
       "NotebookEdit(//Users/marcoramo/hq/knowledge-base/**)",
-      "Read(//Users/marcoramo/hq/knowledge-base/inbox/**)",
       "Read(//Users/marcoramo/hq/knowledge-base/playbooks/**)",
       "Read(//Users/marcoramo/hq/knowledge-base/personal/**)",
       "Read(./**/.env)",
