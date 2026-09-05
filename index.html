@@ -166,10 +166,14 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
   .crop::before,.crop::after{content:"";position:absolute;background:var(--ink)}
   .crop::before{width:14px;height:1px;top:0;left:0}
   .crop::after{width:1px;height:14px;top:0;left:0}
-  .crop.tl{top:calc(var(--pad-t) * .28);left:calc(var(--pad-l) * .28)}
-  .crop.tr{top:calc(var(--pad-t) * .28);right:calc(var(--pad-r) * .28);transform:scaleX(-1)}
-  .crop.bl{bottom:calc(var(--pad-b) * .28);left:calc(var(--pad-l) * .28);transform:scaleY(-1)}
-  .crop.br{bottom:calc(var(--pad-b) * .28);right:calc(var(--pad-r) * .28);transform:scale(-1)}
+  /* The 28% inset is measured from inside the safe area, not from the screen edge: scaling
+     --pad-* itself would put the mark at 28% of a 44-47px landscape inset, i.e. 13px out, back
+     under the hardware the max() exists to clear. Where env() reports 0 this is the old value
+     exactly (0 + 16 * .28), so nothing moves on a laptop or a non-notched phone. */
+  .crop.tl{top:calc(env(safe-area-inset-top,0px) + var(--pad) * .28);left:calc(env(safe-area-inset-left,0px) + var(--pad) * .28)}
+  .crop.tr{top:calc(env(safe-area-inset-top,0px) + var(--pad) * .28);right:calc(env(safe-area-inset-right,0px) + var(--pad) * .28);transform:scaleX(-1)}
+  .crop.bl{bottom:calc(env(safe-area-inset-bottom,0px) + var(--pad) * .28);left:calc(env(safe-area-inset-left,0px) + var(--pad) * .28);transform:scaleY(-1)}
+  .crop.br{bottom:calc(env(safe-area-inset-bottom,0px) + var(--pad) * .28);right:calc(env(safe-area-inset-right,0px) + var(--pad) * .28);transform:scale(-1)}
 
   /* ---- top bar ---- */
   .topbar{
