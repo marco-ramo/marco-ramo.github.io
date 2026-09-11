@@ -26,6 +26,7 @@
       "Bash(git push origin main)",
       "Bash(sh:*)",
       "Bash(python3:*)",
+      "Bash(node:*)",
       "Bash(sips:*)",
       "Bash(file:*)",
       "Bash(grep:*)",
