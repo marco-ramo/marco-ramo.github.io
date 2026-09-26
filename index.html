@@ -254,7 +254,10 @@ document.documentElement.setAttribute("data-theme",m==="light"||m==="dark"?m:"sy
      clamp(14px,2.6vmin,24px), roughly doubling the breathing room at every size. */
   /* Only once the script has made it interactive -- a no-JS visitor gets a plain image. */
   .portrait[role="button"]{cursor:pointer}
-  .portrait:focus-visible{outline:2px solid var(--spot);outline-offset:4px}
+  /* Negative on purpose: the clip-path above clips the outline too, and every polygon point
+     lies inside the box, so a ring drawn outside it would never paint. Inside, the two
+     notches cut its corner segments, which reads as the notch. */
+  .portrait:focus-visible{outline:2px solid var(--spot);outline-offset:-2px}
 
   .ident{display:flex;flex-direction:column;gap:clamp(36px,6.6vmin,64px);min-width:0}
 
