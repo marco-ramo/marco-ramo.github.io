@@ -80,6 +80,7 @@ NULL_TARGETS = {"/dev/null", "/dev/stdout", "/dev/stderr"}
 
 MODE_LITERAL = re.compile(r"""['"]([rwaxbtU+]{1,4})['"]""")
 MODE_KWARG = re.compile(r"""mode\s*=\s*['"]([^'"]*)['"]""")
+ESCAPED_QUOTE = re.compile(r"""\\(['"])""")
 OPEN_CALL = re.compile(r"(?<![\w.])open\s*\(")
 INTERP_FORMS = [
     (re.compile(r"\bos\.open\s*\([^)]*O_(WRONLY|RDWR|CREAT|APPEND|TRUNC)"), "os.open with a write flag"),
@@ -109,7 +110,14 @@ def deny(reason):
 
 
 def open_write_mode(text):
-    """The mode literal of an `open(` call that opens for writing, or None."""
+    """The mode literal of an `open(` call that opens for writing, or None.
+
+    An escaped quote is read as the quote it stands for, so `open(\\"x\\", \\"w\\")`
+    inside a double-quoted `python3 -c` string shows its mode as plainly as
+    `open('x', 'w')` does. A positional mode is looked for after the first comma
+    only, since the first argument is the path and a path such as `"x"` or `"a"`
+    is no mode.
+    """
     for m in OPEN_CALL.finditer(text):
         depth, i, start = 0, m.end() - 1, m.end() - 1
         while i < len(text) and i < start + 400:
@@ -120,8 +128,9 @@ def open_write_mode(text):
                 if depth == 0:
                     break
             i += 1
-        args = text[start:i + 1]
-        for lit in MODE_LITERAL.findall(args):
+        args = ESCAPED_QUOTE.sub(r"\1", text[start:i + 1])
+        comma = args.find(",")
+        for lit in MODE_LITERAL.findall(args[comma + 1:] if comma >= 0 else ""):
             if set(lit) & set("wax+"):
                 return lit
         for kw in MODE_KWARG.findall(args):
@@ -155,9 +164,10 @@ def split_heredocs(command):
     a `#` comment up to, never including, its newline, and joins a backslash-newline
     line continuation, which a shell reads as no separator at all. An escaped double
     quote inside a double-quoted string becomes `\\'`, which the lexer (it has no escape
-    handling) reads as content rather than as the string's end, while the interpreter
-    scan still sees a quoted mode literal. It never raises: a quote left open simply
-    runs to the end, and the lexer then decides.
+    handling) reads as content rather than as the string's end, and which the
+    interpreter scan reads back as the quote it stands for when matching an open mode
+    (`open_write_mode`). It never raises: a quote left open simply runs to the end, and
+    the lexer then decides.
     """
     outer, bodies, pending = [], [], []
     i, n, quote = 0, len(command), None
@@ -401,6 +411,10 @@ FIXTURES = [
     (""".venv/bin/python -c "open('x', 'w')" """, True),
     ("""/Users/me/repo/.venv/bin/python -c "open('x', 'w')" """, True),
     ("""npx tsx -e "require('fs').writeFileSync('x', 'y')" """, True),
+    # an escaped quote stands for the quote around an open mode: the mode is still seen
+    (r'''python3 -c "open(\"x\", \"w\")"''', True),
+    (r'''python3 -c "open(\"x\", \"a\")"''', True),
+    (r'''python3 -c 'open("out.txt", '"\"w\""')' ''', True),
     ("echo x | tee docs/hook-probe.txt", True),
     ("cat kb.py > copy.py", True),
     ("cat kb.py >> copy.py", True),
@@ -432,6 +446,8 @@ FIXTURES = [
     # allowed
     ("""python3 -c "print(open('kb.py').read()[:10])" """, False),
     ("""python3 -c "print(open('kb.py', 'rb').read()[:10])" """, False),
+    # a read whose path is a mode letter, in escaped quotes: the first argument is no mode
+    (r'''python3 -c "print(open(\"x\").read())"''', False),
     ("python3 -m unittest discover -s tests", False),
     ("python3 -m unittest discover -s tests 2>&1 | tail -3", False),
     ("python3 -c \"import kb; print(len(kb.note_paths()))\"", False),
