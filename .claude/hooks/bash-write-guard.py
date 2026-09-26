@@ -31,6 +31,17 @@ What it refuses (the command text, nothing else):
     `subprocess`/`os.system`/`os.popen`/`os.exec*`, and Node's `writeFile*`,
     `appendFile*`, `copyFile*`, `rename*`, `child_process`.
 
+Every rule but the interpreter scan applies per simple command. The command is split as
+a shell splits it, on `;`, `&&`, `||`, `|`, `&`, parentheses and an unquoted newline,
+after heredoc bodies and `#` comments are taken out and backslash-newline continuations
+joined, so a write on any line of a multi-line command is checked and a heredoc's prose is
+never read as commands. An escaped double quote inside a double-quoted string stays inside
+it, as it does in a shell, so a commit message quoting a value in escaped quotes is still
+one argument. Until 2026-09-26 (finding ams-37) a newline read as whitespace, and a whole
+multi-line command was judged by its first line's command word alone; until the same day
+an escaped double quote closed its string, and a commit message's `; { } < >` was read as
+commands and a redirection.
+
 What it leaves alone: every read, the test suite however it is run, `git add`,
 `git commit -m ...` (a commit message is never scanned, so prose may mention
 `open(path, "w")` or `tee`), `git push origin main`, and a tool that writes its own
@@ -60,7 +71,11 @@ INTERPRETERS = {"python", "python3", "node", "nodejs", "deno", "bun", "ruby", "p
                 "php", "uv", "npx", "npm", "pytest", "tsx", "ts-node"}
 PREFIX_WORDS = {"env", "sudo", "nohup", "time", "command", "exec", "builtin", "nice",
                 "caffeinate", "stdbuf"}
-SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&", ";;"}
+SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&", ";;", "\n"}
+#: The characters the lexer groups as punctuation. A newline is one of them, so an
+#: unquoted newline ends one command and starts the next, as it does in a shell.
+PUNCTUATION = "();<>|&\n"
+SEPARATOR_CHARS = ";&|()\n"
 NULL_TARGETS = {"/dev/null", "/dev/stdout", "/dev/stderr"}
 
 MODE_LITERAL = re.compile(r"""['"]([rwaxbtU+]{1,4})['"]""")
@@ -125,17 +140,114 @@ def interpreter_reason(text):
     return None
 
 
-def tokens_of(command):
-    lex = shlex.shlex(command, posix=False, punctuation_chars=True)
+#: A heredoc operator and its delimiter word: `<<EOF`, `<<-EOF`, `<<'EOF'`, `<< "EOF"`,
+#: `<<\EOF`. A here-string (`<<<`) is excluded by the caller.
+HEREDOC_OP = re.compile(r"""<<(-?)[ \t]*(?:'([^'\n]*)'|"([^"\n]*)"|\\?([^\s;&|()<>'"]+))""")
+
+
+def split_heredocs(command):
+    """The command with every heredoc body taken out, and the bodies in operator order.
+
+    Read as a shell reads it, outside quotes only: a heredoc's body runs from the line
+    after its operator to the line holding its delimiter alone (leading tabs stripped
+    for `<<-`), and both leave the command text, so commit-message and scratch-file
+    prose is never read as commands once a newline separates them. The same pass drops
+    a `#` comment up to, never including, its newline, and joins a backslash-newline
+    line continuation, which a shell reads as no separator at all. An escaped double
+    quote inside a double-quoted string becomes `\\'`, which the lexer (it has no escape
+    handling) reads as content rather than as the string's end, while the interpreter
+    scan still sees a quoted mode literal. It never raises: a quote left open simply
+    runs to the end, and the lexer then decides.
+    """
+    outer, bodies, pending = [], [], []
+    i, n, quote = 0, len(command), None
+    while i < n:
+        c = command[i]
+        if quote == "'":
+            outer.append(c)
+            i += 1
+            if c == "'":
+                quote = None
+            continue
+        if c == "\\" and i + 1 < n:
+            if command[i + 1] == "\n":
+                i += 2                        # a line continuation, not a separator
+                continue
+            if quote == '"' and command[i + 1] == '"':
+                outer.append("\\'")           # an escaped quote stays inside its string
+                i += 2
+                continue
+            outer.append(command[i:i + 2])
+            i += 2
+            continue
+        if quote == '"':
+            outer.append(c)
+            i += 1
+            if c == '"':
+                quote = None
+            continue
+        if c in "'\"":
+            quote = c
+            outer.append(c)
+            i += 1
+            continue
+        if c == "#" and (i == 0 or command[i - 1] in " \t\n;&|()"):
+            j = command.find("\n", i)
+            i = n if j < 0 else j            # the comment goes; its newline stays
+            continue
+        if command.startswith("<<", i) and not command.startswith("<<<", i) and (i == 0 or command[i - 1] != "<"):
+            m = HEREDOC_OP.match(command, i)
+            if m:
+                word = next(g for g in m.groups()[1:] if g is not None)
+                pending.append((word, m.group(1) == "-"))
+                outer.append(m.group(0))
+                i = m.end()
+                continue
+        if c == "\n" and pending:
+            outer.append(c)
+            i += 1
+            for word, strip_tabs in pending:
+                body = []
+                while i < n:
+                    j = command.find("\n", i)
+                    line = command[i:] if j < 0 else command[i:j]
+                    i = n if j < 0 else j + 1
+                    if (line.lstrip("\t") if strip_tabs else line) == word:
+                        break
+                    body.append(line)
+                bodies.append("\n".join(body))
+            pending = []
+            continue
+        outer.append(c)
+        i += 1
+    bodies.extend("" for _ in pending)       # an operator with no line after it
+    return "".join(outer), bodies
+
+
+def lex_tokens(text):
+    """Tokenise a command whose heredoc bodies are already out (`split_heredocs`).
+
+    An unquoted newline is punctuation rather than whitespace, so it separates two
+    commands, while a newline inside a quoted string stays content. `commenters` is
+    empty so no `#` swallows the newline after it.
+    """
+    lex = shlex.shlex(text, posix=False, punctuation_chars=PUNCTUATION)
     lex.whitespace_split = True
+    lex.commenters = ""
+    lex.whitespace = lex.whitespace.replace("\n", "")
     return list(lex)
 
 
+def tokens_of(command):
+    return lex_tokens(split_heredocs(command)[0])
+
+
 def simple_commands(toks):
-    """Split a token list into simple commands on the shell's separators."""
+    """Split a token list into simple commands on the shell's separators, an unquoted
+    newline among them."""
     out, cur = [], []
     for t in toks:
-        if t in SEPARATORS or all(c in ";&|()" for c in t):
+        if t in SEPARATORS or all(c in SEPARATOR_CHARS for c in t):
             if cur:
                 out.append(cur)
             cur = []
@@ -172,6 +284,8 @@ def redirect_reason(cmd):
     for i, t in enumerate(cmd):
         if ">" not in t or not all(c in "<>&|0123456789" for c in t):
             continue
+        if t.startswith(">") and i and cmd[i - 1].endswith("="):
+            continue                          # `=>`, an arrow function, not a redirection
         nxt = unquote(cmd[i + 1]) if i + 1 < len(cmd) else ""
         if t.endswith(">&") or t.endswith(">>&"):
             if re.fullmatch(r"\d+|-", nxt):
@@ -183,18 +297,26 @@ def redirect_reason(cmd):
     return None
 
 
-def check_tokens(toks, raw, depth=0):
+def check_tokens(toks, raw, depth=0, bodies=None):
+    """The refusal reason for a tokenised command, or None.
+
+    `bodies` are the heredoc bodies `split_heredocs` took out, in operator order, which
+    the interpreter scan reads beside `raw` -- every body but a git message's. None means
+    `raw` still carries its bodies, as it does for the string a spawned shell runs.
+    """
     if depth > 3:
         return None
     scan_raw = False
+    opened, prose = 0, set()                  # heredoc operators met; which bodies are prose
     for cmd in simple_commands(toks):
         word, at = command_word(cmd)
         rest = cmd[at + 1:]
+        first, opened = opened, opened + sum(1 for t in cmd if t == "<<")
         if word == "git" and rest and unquote(rest[0]) in {"commit", "tag", "notes", "merge"}:
-            # git's own writes, and a message never scanned: a heredoc message runs to the
-            # end of the command, and its prose may hold `<scope>/x`, `tee` or `rm`.
-            if any(unquote(a).startswith("<<") for a in rest):
-                break
+            # git's own writes, and a message never scanned: a heredoc message's body is
+            # already out of the tokens and is kept out of the interpreter scan, while the
+            # commands after its delimiter line are read like any others (finding ams-37).
+            prose.update(range(first, opened))
             continue
         r = redirect_reason(cmd)
         if r:
@@ -219,14 +341,22 @@ def check_tokens(toks, raw, depth=0):
             scan_raw = True
     # An interpreter's program and a heredoc's body are scanned as text: the tokenizer
     # splits a Python body on its parentheses, so the forms are read off the raw command.
-    return interpreter_reason(raw) if scan_raw else None
+    if not scan_raw:
+        return None
+    if bodies is None:
+        return interpreter_reason(raw)
+    if opened != len(bodies):
+        prose = set()                         # operators and bodies disagree: scan every body
+    return interpreter_reason("\n".join([raw] + [b for i, b in enumerate(bodies) if i not in prose]))
 
 
 def check_raw(command):
     """Coarse whole-text fallback for a command the tokenizer cannot parse."""
     if re.match(r"^\s*git\s+(commit|tag|notes|merge)\b", command):
         return None                           # a commit message's prose is never scanned
-    if re.search(r"(?<![-<>&|])>{1,2}(?!&)\s*(?!/dev/null|/dev/stdout|/dev/stderr)\S", command):
+    # `=` joins the lookbehind so `=>` reads as an arrow function rather than a redirection:
+    # inline JavaScript reaches this fallback whenever its quoting defeats the tokenizer.
+    if re.search(r"(?<![-<>&|=])>{1,2}(?!&)\s*(?!/dev/null|/dev/stdout|/dev/stderr)\S", command):
         return "a redirection into a file"
     for w in WRITE_CMDS:
         if re.search(r"(^|[\s;|&(])" + re.escape(w) + r"(\s|$)", command) and not re.search(r"\bgit\s+" + w + r"\b", command):
@@ -246,14 +376,14 @@ def strip_messages(command):
 
 def reason_for(command):
     stripped = strip_messages(command)
-    try:
-        toks = tokens_of(command)
-    except ValueError:
+    for text in (command, stripped):
+        outer, bodies = split_heredocs(text)
         try:
-            toks = tokens_of(stripped)
+            toks = lex_tokens(outer)
         except ValueError:
-            return check_raw(stripped)
-    return check_tokens(toks, stripped)
+            continue
+        return check_tokens(toks, strip_messages(outer), bodies=bodies)
+    return check_raw(stripped)
 
 
 FIXTURES = [
@@ -275,6 +405,8 @@ FIXTURES = [
     ("cat kb.py > copy.py", True),
     ("cat kb.py >> copy.py", True),
     ("echo x 2> err.txt", True),
+    ("echo x >file", True),
+    ("echo x > file", True),
     ("cp kb.py kb2.py", True),
     ("mv kb.py kb2.py", True),
     ("rm -rf __pycache__", True),
@@ -287,6 +419,16 @@ FIXTURES = [
     ("ls | xargs rm", True),
     ("cat <<'EOF' > docs/x.md\nhello\nEOF", True),
     ("FOO=1 tee x", True),
+    # an unquoted newline separates two commands, so a write on a later line is still seen
+    # (finding ams-37): shlex read it as whitespace, and the whole text became one command
+    # whose command word was the first line's `git` or `ls`
+    ("git status --short\npython3 -c \"open('x', 'w')\"", True),
+    ("ls\nfind . -name '*.orig' -delete", True),
+    ("ls\nsh -c 'echo x > y'", True),
+    # a trailing comment cannot swallow the newline that ends it
+    ("ls # tidy\nrm -rf x", True),
+    # a heredoc commit's body is prose, but the command after its terminator is a command
+    ("git commit -q -F - <<'EOF'\nprose that says rm x\nEOF\nrm x", True),
     # allowed
     ("""python3 -c "print(open('kb.py').read()[:10])" """, False),
     ("""python3 -c "print(open('kb.py', 'rb').read()[:10])" """, False),
@@ -301,6 +443,11 @@ FIXTURES = [
     ("npx vitest run", False),
     ("npx tsc --noEmit", False),
     ("node --check dist/cli.js", False),
+    # an arrow function is not a redirection: the run-log command this guard refused on
+    # 2026-09-22, whose escaped quotes defeated the tokenizer and reached check_raw until
+    # split_heredocs kept an escaped double quote inside its string (2026-09-26)
+    (r'''cd /private/tmp/claude-501/-Users-marcoramo-hq-code-base-build-dispatcher/f4ac6278-c0c8-4f34-9b47-87a0a200676a/scratchpad/appserver-schema && node -e "const s=require('./codex_app_server_protocol.v2.schemas.json'); const cr=s.definitions?.ClientRequest||s.\$defs?.ClientRequest; console.log(Object.keys(s.definitions||s.\$defs||{}).length); const j=JSON.stringify(s); const ms=[...j.matchAll(/\"method\":\{[^}]*\"const\":\"([^\"]+)\"/g)].map(m=>m[1]); console.log(JSON.stringify([...new Set(ms)],null,1))"''', False),
+    ("node -e 'xs.map(m=>m[1])'", False),
     ("sh tests/run.sh", False),
     ("osacompile -o dist/x.app src.applescript", False),
     ("sed -n '1,40p' kb.py", False),
@@ -321,6 +468,13 @@ FIXTURES = [
     ("git commit -F - <<'EOF'\nRead <scope>/handoff/orders/x.md; a (rm) and tee > nothing in prose\nEOF", False),
     ("git commit -F - <<'EOF'\nMarco's ruling: a > b, it's prose\nEOF", False),
     ("git commit -q -F - <<'EOF'\nprose\nEOF\ngit push origin main", False),
+    # a comment line is no command, and a `>` inside one is no redirection
+    ("# count\nls tests", False),
+    ("# a > b\nwc -l index.html", False),
+    # a commit message is never a redirection: the aa-design-lab fix leg's commit this
+    # guard refused on 2026-09-26, whose escaped double quotes (`\"12px\"`) the tokenizer
+    # read as closing the message, leaving `; { } < > or` outside it
+    (r'''git commit -m "Route the studio's switches and words box by exact name, and make the words box refuse what no save could write, fixing SUFFIX-01 and TEXTVAL-01 from the bug sweep of 2026-09-26. SUFFIX-01: makeControl tested the suffixes -arrow, -display, -mesh and -text before a token's type, so --font-display got the tape's off/on switch in place of its typeface menu, --gap-title-arrow and --opacity-title-arrow got off/↗ switches writing none and a quoted glyph into a margin and an opacity, and --gap-icon-text got a words box writing a quoted \"12px\", on all fifteen variations. The choice now lives in studio-tokens.js as controlKindOf(name, value): --title-arrow is the arrow switch, --tape-display the display switch, --header-text and --tape-text the words box, a name ending in -mesh keeps the mesh gate (it catches only --bg-mesh and --bg-content-mesh), and every other token takes typeOf's answer; typeOf, RE_LEN and RE_NUM move from studio.html into studio-tokens.js with it, and the studio loads studio-tokens.js?v=2. TEXTVAL-01: the box's writer is now quoteText(words), which returns null for words holding ; { } < > or quoting to more than 200 code points, the save helper's and the live relay's ^[^;{}<>]{1,200}$; the box then shows the reason beside itself and applies nothing, where before one such value made save answer 400 and write none of the session's edits and made the relay drop every later push. TOKENS.md's two sentences on suffix routing now name the tokens. tests/control-kind.test.js and tests/quote-text.test.js failed before the fix (controlKindOf and quoteText not functions, no words branch in studio.html) and pass after; replaying the shipped suffix order gives display, words, arrow and arrow for the four ordinary tokens, and replaying the shipped writer emits Read > Listen, a; b and a 199-character line unchanged into values both servers refuse." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"''', False),
     ("git push origin main", False),
     ("git mv old.py new.py", False),
     ("curl -s http://127.0.0.1:7842/api/kb | python3 -c \"import json,sys; print(len(json.load(sys.stdin)['scopes']))\"", False),
